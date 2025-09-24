@@ -1,0 +1,70 @@
+{
+  "name": "Document Routes Collection",
+  "requests": [
+    {
+      "name": "Upload Document",
+      "method": "POST",
+      "url": "http://localhost:5000/api/documents/upload",
+      "headers": [
+        {
+          "key": "Authorization",
+          "value": "Bearer <YOUR_TOKEN>"
+        }
+      ],
+      "body": {
+        "mode": "formdata",
+        "formdata": [
+          {
+            "key": "document",
+            "type": "file",
+            "src": "<FILE_PATH>"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Fetch All Documents",
+      "method": "GET",
+      "url": "http://localhost:5000/api/documents/",
+      "headers": [
+        {
+          "key": "Authorization",
+          "value": "Bearer <YOUR_TOKEN>"
+        }
+      ]
+    },
+    {
+      "name": "View Document",
+      "method": "GET",
+      "url": "http://localhost:5000/api/documents/view/<DOC_ID>",
+      "headers": [
+        {
+          "key": "Authorization",
+          "value": "Bearer <YOUR_TOKEN>"
+        }
+      ]
+    },
+    {
+      "name": "Download Document",
+      "method": "GET",
+      "url": "http://localhost:5000/api/documents/download/<DOC_ID>",
+      "headers": [
+        {
+          "key": "Authorization",
+          "value": "Bearer <YOUR_TOKEN>"
+        }
+      ]
+    },
+    {
+      "name": "Delete Document",
+      "method": "DELETE",
+      "url": "http://localhost:5000/api/documents/<DOC_ID>",
+      "headers": [
+        {
+          "key": "Authorization",
+          "value": "Bearer <YOUR_TOKEN>"
+        }
+      ]
+    }
+  ]
+}
