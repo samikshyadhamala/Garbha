@@ -7,6 +7,7 @@ const kickRoutes = require("./routes/kickRoutes");
 const path = require("path");
 const resetRoutes = require("./routes/resetRoutes");
 const deleteRoutes = require("./routes/deleteRoutes");
+const summaryRoutes = require("./routes/summaryRoutes");
 
 dotenv.config();
 connectDB();
@@ -24,6 +25,8 @@ app.use("/api/weights", weightRoutes);
 app.use("/api/kicks", kickRoutes); 
 app.use("/api/reset", resetRoutes);
 app.use("/api/delete", deleteRoutes);
+app.use("/api/summary", summaryRoutes);
 
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

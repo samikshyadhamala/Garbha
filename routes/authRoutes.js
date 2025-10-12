@@ -1,4 +1,3 @@
-module.exports = router;
 const express = require("express");
 const router = express.Router();
 const { protect } = require("../middleware/authMiddleware");
@@ -18,5 +17,5 @@ router.get("/pregnancy-profile", protect, authController.getPregnancyProfile);
 router.post("/pregnancy-profile", protect, authController.createOrUpdatePregnancyProfile);
 router.put("/pregnancy-profile", protect, authController.createOrUpdatePregnancyProfile);
 
+// Export router at the very end
 module.exports = router;
-

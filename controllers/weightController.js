@@ -5,17 +5,18 @@ const Weight = require("../models/weightModel");
 exports.addWeight = async (req, res) => {
   try {
     const { weight } = req.body;
-    const userId = req.user.id; // use authenticated user
+    const userId = req.user.id; // authenticated user
 
     if (weight === undefined || weight <= 0) {
       return res.status(400).json({ message: "Invalid weight value" });
     }
 
-    // Today's date range UTC
+ 
     const startOfDay = new Date();
-    startOfDay.setUTCHours(0, 0, 0, 0);
-    const endOfDay = new Date();
-    endOfDay.setUTCHours(23, 59, 59, 999);
+    startOfDay.setHours(0,0,0,0);
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setHours(23,59,59,999);
+
 
     // Check if entry exists for today
     let entry = await Weight.findOne({
@@ -56,7 +57,7 @@ exports.getWeeklyStats = async (req, res) => {
     start.setUTCHours(0, 0, 0, 0);
 
     const weights = await Weight.aggregate([
-      { $match: { user: mongoose.Types.ObjectId(req.user.id), date: { $gte: start } } },
+      { $match: { user: new mongoose.Types.ObjectId(req.user.id), date: { $gte: start } } },
       {
         $group: {
           _id: {
@@ -90,7 +91,7 @@ exports.getWeightsByMonth = async (req, res) => {
     const end = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
 
     const weights = await Weight.aggregate([
-      { $match: { user: mongoose.Types.ObjectId(req.user.id), date: { $gte: start, $lte: end } } },
+      { $match: { user: new mongoose.Types.ObjectId(req.user.id), date: { $gte: start, $lte: end } } },
       {
         $group: {
           _id: {

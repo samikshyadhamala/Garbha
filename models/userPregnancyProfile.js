@@ -21,8 +21,8 @@ const userPregnancyProfileSchema = new mongoose.Schema({
   allergies: [{ type: String, trim: true, default: "none" }],
   medications: [{ type: String, trim: true, default: "none" }],
   lifestyle: {
-    smoke: { type: Boolean, default: null }, // dropdown true/false
-    alcohol: { type: Boolean, default: null }, // dropdown true/false
+    smoke: { type: Boolean, default: null },
+    alcohol: { type: Boolean, default: null },
     familyHistoryPregnancyComplications: { type: Boolean, default: false },
   },
 
@@ -59,4 +59,7 @@ userPregnancyProfileSchema.pre("save", function(next) {
   next();
 });
 
-module.exports = mongoose.model("UserPregnancyProfile", userPregnancyProfileSchema);
+// Prevent OverwriteModelError
+module.exports = 
+  mongoose.models.UserPregnancyProfile || 
+  mongoose.model("UserPregnancyProfile", userPregnancyProfileSchema);
