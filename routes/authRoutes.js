@@ -1,21 +1,35 @@
 const express = require("express");
 const router = express.Router();
-const { protect } = require("../middleware/authMiddleware");
 const authController = require("../controllers/authController");
+const { protect } = require("../middleware/authMiddleware"); // Your auth middleware
 
-// -------------------- AUTH & OTP --------------------
-router.post("/send-otp", authController.sendOtp);
-router.post("/verify-otp", authController.verifyOtp); // handles password as well now
+// -------------------- PUBLIC ROUTES --------------------
+
+// Step 1: Send OTP during signup
+router.post("/signup/send-otp", authController.sendOtp);
+
+// Step 2: Verify OTP (completes basic registration)
+router.post("/signup/verify-otp", authController.verifyOtp);
+
+// Login
 router.post("/login", authController.login);
 
-// -------------------- GENERAL PROFILE --------------------
+// -------------------- PROTECTED ROUTES --------------------
+
+// Step 3: Complete profile after OTP verification (requires auth token)
+router.post("/profile/complete", protect, authController.completeProfile);
+
+// Get user profile
 router.get("/profile", protect, authController.getUserProfile);
+
+// Update user profile
 router.put("/profile", protect, authController.updateUserProfile);
 
-// -------------------- PREGNANCY PROFILE --------------------
+// Get pregnancy profile
 router.get("/pregnancy-profile", protect, authController.getPregnancyProfile);
+
+// Create or update pregnancy profile
 router.post("/pregnancy-profile", protect, authController.createOrUpdatePregnancyProfile);
 router.put("/pregnancy-profile", protect, authController.createOrUpdatePregnancyProfile);
 
-// Export router at the very end
 module.exports = router;
