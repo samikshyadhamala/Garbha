@@ -12,7 +12,7 @@ const getGestationalWeek = async (userId) => {
 // ➤ Get or create today’s session
 exports.getOrCreateTodaySession = async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user.id;
 
     const gestWeek = await getGestationalWeek(userId);
     if (gestWeek < 18)
@@ -44,7 +44,9 @@ exports.addKick = async (req, res) => {
   try {
     const { sessionId } = req.body;
     const session = await KickSession.findById(sessionId);
-    if (!session) return res.status(404).json({ message: "Session not found" });
+
+    if (!session || session.user.toString() !== req.user.id)
+      return res.status(404).json({ message: "Session not found" });
 
     session.kicks.push(new Date());
     await session.save();
@@ -59,7 +61,9 @@ exports.removeKick = async (req, res) => {
   try {
     const { sessionId } = req.body;
     const session = await KickSession.findById(sessionId);
-    if (!session) return res.status(404).json({ message: "Session not found" });
+
+    if (!session || session.user.toString() !== req.user.id)
+      return res.status(404).json({ message: "Session not found" });
 
     session.kicks.pop(); // remove last kick
     await session.save();
@@ -72,7 +76,8 @@ exports.removeKick = async (req, res) => {
 // ➤ Get summary for filters + chart
 exports.getSummary = async (req, res) => {
   try {
-    const { userId, filter } = req.query;
+    const userId = req.user.id;
+    const { filter } = req.query;
     const now = new Date();
     let startDate;
 

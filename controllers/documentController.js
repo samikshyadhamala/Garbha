@@ -16,7 +16,7 @@ exports.uploadDocument = async (req, res) => {
     if (!file) return res.status(400).json({ message: "No file uploaded" });
 
     await Document.create({
-      user: req.user._id,
+      user: req.user._id, // authenticated user
       originalName: file.originalname,
       filename: file.filename,
       mimeType: file.mimetype,
@@ -86,7 +86,6 @@ exports.deleteDocument = async (req, res) => {
     // Remove metadata from DB
     await doc.deleteOne();
 
-    // Return updated list
     const docs = await Document.find({ user: req.user._id });
     const docsWithUrl = docs.map(d => ({
       _id: d._id,
@@ -101,8 +100,7 @@ exports.deleteDocument = async (req, res) => {
   }
 };
 
-// For viewing documents
-
+// View document
 exports.viewDocument = async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id);
@@ -113,10 +111,12 @@ exports.viewDocument = async (req, res) => {
     const filePath = path.join(__dirname, "../uploads", doc.filename);
     const ext = path.extname(doc.filename).toLowerCase();
 
-    // Set appropriate content type
     if (ext === ".pdf") res.contentType("application/pdf");
     else if (ext === ".doc") res.contentType("application/msword");
-    else if (ext === ".docx") res.contentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    else if (ext === ".docx")
+      res.contentType(
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      );
     else res.contentType("application/octet-stream");
 
     res.sendFile(filePath);
@@ -124,5 +124,3 @@ exports.viewDocument = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
-

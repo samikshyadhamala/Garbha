@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { protect } = require("../middleware/authMiddleware");
 const {
   addWeight,
   getRecentWeights,
@@ -11,32 +12,23 @@ const {
   getPopulatedWeights,
 } = require("../controllers/weightController");
 
-// Routes
+// Use protect middleware for all routes
+router.use(protect);
 
 // Create a new weight entry
 router.post("/", addWeight);
 
 // Specific routes first
-router.get("/:userId/recent", getRecentWeights);
-router.get("/:userId/month", getWeightsByMonth);
-router.get("/:userId/weekly", getWeeklyStats);
-router.get("/:userId/populated", getPopulatedWeights);
+router.get("/recent", getRecentWeights);
+router.get("/month", getWeightsByMonth);
+router.get("/weekly", getWeeklyStats);
+router.get("/populated", getPopulatedWeights);
 
 // Generic route last
-router.get("/:userId", getAllWeights);
+router.get("/", getAllWeights);
 
 // Update and delete by weightId
 router.put("/:weightId", updateWeight);
 router.delete("/:weightId", deleteWeight);
 
 module.exports = router;
-console.log({
-  addWeight,
-  getAllWeights,
-  getRecentWeights,
-  getWeightsByMonth,
-  getWeeklyStats,
-  updateWeight,
-  deleteWeight,
-  getPopulatedWeights,
-});

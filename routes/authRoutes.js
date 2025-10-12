@@ -1,3 +1,4 @@
+module.exports = router;
 const express = require("express");
 const router = express.Router();
 const { protect } = require("../middleware/authMiddleware");
@@ -5,8 +6,7 @@ const authController = require("../controllers/authController");
 
 // -------------------- AUTH & OTP --------------------
 router.post("/send-otp", authController.sendOtp);
-router.post("/verify-otp", authController.verifyOtp);
-router.post("/set-password-profile", authController.setPasswordProfile);
+router.post("/verify-otp", authController.verifyOtp); // handles password as well now
 router.post("/login", authController.login);
 
 // -------------------- GENERAL PROFILE --------------------
@@ -19,3 +19,4 @@ router.post("/pregnancy-profile", protect, authController.createOrUpdatePregnanc
 router.put("/pregnancy-profile", protect, authController.createOrUpdatePregnancyProfile);
 
 module.exports = router;
+

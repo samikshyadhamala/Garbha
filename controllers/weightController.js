@@ -4,22 +4,22 @@ const Weight = require("../models/weightModel");
 // ➕ Add or update today's weight
 exports.addWeight = async (req, res) => {
   try {
-    const { user, weight } = req.body;
+    const { weight } = req.body;
+    const userId = req.user.id; // use authenticated user
 
-    if (!user || weight === undefined || weight <= 0) {
-      return res.status(400).json({ message: "Invalid user or weight value" });
+    if (weight === undefined || weight <= 0) {
+      return res.status(400).json({ message: "Invalid weight value" });
     }
 
     // Today's date range UTC
     const startOfDay = new Date();
     startOfDay.setUTCHours(0, 0, 0, 0);
-
     const endOfDay = new Date();
     endOfDay.setUTCHours(23, 59, 59, 999);
 
     // Check if entry exists for today
     let entry = await Weight.findOne({
-      user,
+      user: userId,
       date: { $gte: startOfDay, $lte: endOfDay },
     });
 
@@ -29,10 +29,9 @@ exports.addWeight = async (req, res) => {
       return res.status(200).json({ message: "Weight updated for today", entry });
     }
 
-    entry = await Weight.create({ user, weight });
+    entry = await Weight.create({ user: userId, weight });
     res.status(201).json({ message: "Weight added", entry });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
@@ -40,8 +39,7 @@ exports.addWeight = async (req, res) => {
 // 🔟 Get last 10 entries
 exports.getRecentWeights = async (req, res) => {
   try {
-    const { userId } = req.params;
-    const weights = await Weight.find({ user: userId })
+    const weights = await Weight.find({ user: req.user.id })
       .sort({ date: -1 })
       .limit(10);
     res.json(weights);
@@ -53,13 +51,12 @@ exports.getRecentWeights = async (req, res) => {
 // 📊 Weekly stats (last 7 days, aggregated by day)
 exports.getWeeklyStats = async (req, res) => {
   try {
-    const { userId } = req.params;
     const start = new Date();
     start.setUTCDate(start.getUTCDate() - 7);
     start.setUTCHours(0, 0, 0, 0);
 
     const weights = await Weight.aggregate([
-      { $match: { user: mongoose.Types.ObjectId(userId), date: { $gte: start } } },
+      { $match: { user: mongoose.Types.ObjectId(req.user.id), date: { $gte: start } } },
       {
         $group: {
           _id: {
@@ -83,7 +80,6 @@ exports.getWeeklyStats = async (req, res) => {
 // 🗓 Get weights by month (aggregated by day)
 exports.getWeightsByMonth = async (req, res) => {
   try {
-    const { userId } = req.params;
     const month = parseInt(req.query.month);
     if (!month || month < 1 || month > 12) {
       return res.status(400).json({ message: "Invalid month" });
@@ -94,7 +90,7 @@ exports.getWeightsByMonth = async (req, res) => {
     const end = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
 
     const weights = await Weight.aggregate([
-      { $match: { user: mongoose.Types.ObjectId(userId), date: { $gte: start, $lte: end } } },
+      { $match: { user: mongoose.Types.ObjectId(req.user.id), date: { $gte: start, $lte: end } } },
       {
         $group: {
           _id: {
@@ -118,8 +114,7 @@ exports.getWeightsByMonth = async (req, res) => {
 // 📋 Get all weights
 exports.getAllWeights = async (req, res) => {
   try {
-    const { userId } = req.params;
-    const weights = await Weight.find({ user: userId }).sort({ date: 1 });
+    const weights = await Weight.find({ user: req.user.id }).sort({ date: 1 });
     res.json(weights);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -161,8 +156,7 @@ exports.deleteWeight = async (req, res) => {
 // 👥 Get populated weights (with user profile info)
 exports.getPopulatedWeights = async (req, res) => {
   try {
-    const { userId } = req.params;
-    const weights = await Weight.find({ user: userId }).populate("user");
+    const weights = await Weight.find({ user: req.user.id }).populate("user");
     res.json(weights);
   } catch (err) {
     res.status(500).json({ message: err.message });

@@ -1,7 +1,8 @@
 const express = require("express");
+const { protect } = require("../middleware/authMiddleware");
 const router = express.Router();
 const kickController = require("../controllers/kickController");
-
+router.use(protect);
 // Get or create today’s session
 router.post("/today", kickController.getOrCreateTodaySession);
 
