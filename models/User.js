@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      select: false, // Don't return password by default in queries
+      select: true, // Don't return password by default in queries
     },
     isVerified: {
       type: Boolean,
@@ -74,31 +74,16 @@ userSchema.pre("save", async function (next) {
   }
 });
 
-// Hash temp password before saving
-userSchema.pre("save", async function (next) {
-  // Only hash the temp password if it has been modified (or is new)
-  if (!this.isModified("tempPassword")) {
-    return next();
-  }
-  
-  // Don't hash if tempPassword is undefined
-  if (!this.tempPassword) {
-    return next();
-  }
 
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.tempPassword = await bcrypt.hash(this.tempPassword, salt);
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
 
 // Method to compare passwords
-userSchema.methods.matchPassword = async function (enteredPassword) {
-  if (!this.password) return false;
-  return await bcrypt.compare(enteredPassword, this.password);
+userSchema.methods.matchPassword = async function (enteredPassword, thePassword) {  // abhinav changes
+  console.log("Entered PASSWORD : ", enteredPassword)
+  console.log("THIA PASSWORD : ", thePassword)
+
+  if (!thePassword) return false;
+  console.log("I am here")
+  return await bcrypt.compare(enteredPassword, thePassword);
 };
 
 // Method to check if account is locked (can be extended)
