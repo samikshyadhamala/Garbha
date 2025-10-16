@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/authController");
+const logoutController = require("../controllers/logoutController");
+const { logoutProtect } = require("../middleware/logoutProtect");
 const { protect } = require("../middleware/authMiddleware"); // Your auth middleware
 
 // -------------------- PUBLIC ROUTES --------------------
@@ -31,5 +33,9 @@ router.get("/pregnancy-profile", protect, authController.getPregnancyProfile);
 // Create or update pregnancy profile
 router.post("/pregnancy-profile", protect, authController.createOrUpdatePregnancyProfile);
 router.put("/pregnancy-profile", protect, authController.createOrUpdatePregnancyProfile);
+
+// Logout Routes
+router.post("/logout", logoutProtect, logoutController.logout);
+router.post("/logout-all", logoutProtect, logoutController.logoutAll);
 
 module.exports = router;
