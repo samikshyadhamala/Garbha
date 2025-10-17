@@ -1,6 +1,8 @@
 const mongoose = require("mongoose");
 const UserPregnancyProfile = require("../models/userPregnancyProfile");
 const pregnancyTips = require("../utils/pregnancyTips");
+const babyGrowthData = require("../utils/babyGrowthData");
+
 
 exports.getProgress = async (req, res) => {
   try {
@@ -33,16 +35,26 @@ exports.getProgress = async (req, res) => {
 
     const tip = pregnancyTips[currentWeek] || "You're doing great! Keep taking care of yourself and your baby.";
 
-    res.json({
-      preferredName: profile.preferredName,
-      week: currentWeek,
-      day: currentDay,
-      percentDone: `${percentDone}%`,
-      daysRemaining,
-      totalDays,
-      trimester,
-      tip,
-    });
+    const babyData = babyGrowthData[currentWeek] || {
+  size: "N/A",
+  description: "Your baby’s development info for this week isn’t available yet.",
+  imageUrl: "",
+};
+
+res.json({
+  preferredName: profile.preferredName,
+  week: currentWeek,
+  day: currentDay,
+  percentDone: `${percentDone}%`,
+  daysRemaining,
+  trimester,
+  tip,
+  baby: {
+    size: babyData.size,
+    description: babyData.description,
+    imageUrl: babyData.imageUrl,
+  },
+});
   } catch (error) {
     console.error("Error calculating pregnancy progress:", error);
     res.status(500).json({ message: "Server error" });
