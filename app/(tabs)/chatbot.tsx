@@ -69,7 +69,7 @@ export default function ChatBot() {
   ]);
   const [isDrawerOpen, setDrawerOpen] = useState(false);
   const [input, setInput] = useState('')
-  const api_key = "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"
+  const api_key = "hello"
 
    const handleSend = async ()=>{
 
