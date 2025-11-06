@@ -3,44 +3,49 @@ import { Image } from 'expo-image';
 import { View, TextInput, StyleSheet, Text, Platform, Pressable, KeyboardAvoidingView, ScrollView, Alert } from 'react-native';
 import Checkbox from 'expo-checkbox';
 import { Link, useRouter } from 'expo-router';
-import { setMail } from './save'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function GetStarted() {
     const [isChecked, setChecked] = useState(false);
-    const router = useRouter();
+    const router = useRouter()
     const [form, setForm] = useState({
-            firstName:"",
-            lastName:"",
-            email:"",
-            password:""
-        })
+        email: "",
+        password: ""
+    })
 
-    const Start = async ()=>{
-        const response = await fetch('http://192.168.123.7:3000/api/auth/signup/send-otp',{
-            method:"POST",
-            headers:{
-                "Content-type":"application/json"
-            },
-            body: JSON.stringify(form)
+    const Log = async () => {
 
-        })
+        try {
 
-        const resp = await response.json()
-        if (!resp.success) {
+            console.log(form.email)
+            console.log(form.password)
+
+
+            const response = await fetch('http://192.168.123.7:3000/api/auth/login', {
+                method: "POST",
+                headers: {
+                    "Content-type": "application/json"
+                },
+                body: JSON.stringify(form)
+
+            })
+
+            const resp = await response.json()
+
+            if (!resp.success) {
                 Alert.alert(resp.message)
             }
 
             if (resp.success) {
-                setMail(form.email)
+                await AsyncStorage.setItem('token', resp.token);
                 Alert.prompt("Successfully signed in")
-                router.push('/(tabs)/verify')
+                router.push('/(tabs)/dashbaord')
             }
-        console.log(response)
+        } catch (error) {
+            console.error(error)
+        }
     }
-
     return (
-
         <KeyboardAvoidingView
             style={{ flex: 1, backgroundColor: 'white' }}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -52,33 +57,33 @@ export default function GetStarted() {
                 <View style={styles.above}>
                     <Image source={require('../../assets/images/fetus.png')} style={{ width: 200, height: 200 }} />
                     <View style={styles.cont}>
-                        <Text style={styles.title}>Get Started</Text>
-                        <Text style={styles.para}>Create account for free.</Text>
+                        <Text style={styles.title}>Log in</Text>
+                        <Text style={styles.para}>Login to your exisiting account</Text>
                     </View>
                 </View>
                 <View style={styles.below}>
-                    <TextInput style={styles.input} placeholder="Full name" onChangeText={text => setForm(prev => ({ ...prev, firstName: text }))} value={form.firstName} />
-                    <TextInput style={styles.input} placeholder="Full name" onChangeText={text => setForm(prev => ({ ...prev, lastName: text }))} value={form.lastName} />
-                    <TextInput style={styles.input} placeholder="email" keyboardType="email-address" onChangeText={text => setForm(prev => ({ ...prev, email: text }))}value={form.email} />
-                    <TextInput style={styles.input} placeholder="password" secureTextEntry onChangeText={text => setForm(prev => ({ ...prev, password: text }))} value={form.password}/>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="email"
+                        // keyboardType="phone-pad"
+                        onChangeText={text => setForm(prev => ({ ...prev, email: text }))}
+                        value={form.email}
+                    />
+                    <TextInput style={styles.input} placeholder="password" secureTextEntry onChangeText={text => setForm(prev => ({ ...prev, password: text }))} value={form.password} />
                 </View>
                 <View style={styles.buttons}>
                     <View style={styles.checkboxContainer}>
-                        <Checkbox
-                            value={isChecked}
-                            onValueChange={setChecked}
-                            color={isChecked ? '#4630EB' : undefined}
-                        />
-                        <Text style={styles.checkboxLabel}>By checking the box you agree to our <Text style={styles.highlight} onPress={() => router.push('/(tabs)/dashbaord')}>Terms and Conditions</Text>.</Text>
+
+                        <Text style={styles.checkboxLabel}>Don't have an account? <Text style={styles.highlight}>SignUp</Text>.</Text>
                     </View>
-                        <Text style={styles.checkboxLabel}>Already have an account?<Text style={styles.highlight} onPress={() => router.push('/(tabs)/login')}>LogIn</Text>.</Text>
-                        <Pressable style={styles.btn} onPress={Start}>
-                            {({ pressed }) => (
-                                <Text style={[styles.btnText, pressed && { opacity: 0.8 }]}>
-                                    Next ➡
-                                </Text>
-                            )}
-                        </Pressable>
+
+                    <Pressable style={styles.btn} onPress={Log}>
+                        {({ pressed }) => (
+                            <Text style={[styles.btnText, pressed && { opacity: 0.8 }]}>
+                                Log In
+                            </Text>
+                        )}
+                    </Pressable>
                 </View>
             </ScrollView>
         </KeyboardAvoidingView>
@@ -122,11 +127,12 @@ const styles = StyleSheet.create({
     buttons: {
         width: '100%',
         marginTop: 10,
+        bottom: -10
     },
     checkboxContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 10,
     },
     checkboxLabel: {
         fontSize: 12,

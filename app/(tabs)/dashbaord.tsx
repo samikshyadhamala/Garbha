@@ -5,8 +5,9 @@ import {
     Pressable,
     StyleSheet,
     ImageBackground,
+    ScrollView,
 } from 'react-native';
-import { Sun } from 'lucide-react-native';
+import { Sun, Pen } from 'lucide-react-native';
 
 
 export default function Dashboard() {
@@ -37,6 +38,9 @@ export default function Dashboard() {
 
                 </View>
 
+                <ScrollView>
+
+
                 <View style={styles.cards}>
 
                     <Text style={{ fontSize: 28, fontWeight: 500, color: "white", left: 25, top: 50 }}>Weight Tracker</Text>
@@ -46,6 +50,18 @@ export default function Dashboard() {
                         )}
                     </Pressable>
 
+
+                </View>
+                <View style={styles.cards}>
+
+                    <Text style={{ fontSize: 28, fontWeight: 500, color: "white", left: 25, top: 50 }}>Weight Tracker</Text>
+                    <Pressable style={styles.btn}>
+                        {({ pressed }) => (
+                            <Text style={[styles.btnText, pressed && { opacity: 0.6 }]}>Check Now</Text>
+                        )}
+                    </Pressable>
+
+
                 </View>
 
                 <View style={styles.noti}>
@@ -76,6 +92,7 @@ export default function Dashboard() {
 
                 </View>
 
+                        </ScrollView>
             </View>
         </>
     )

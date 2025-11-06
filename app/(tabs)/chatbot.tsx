@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+// import { api_key } from '@env'
 import {
   View,
   Text,
@@ -16,16 +17,18 @@ import * as DocumentPicker from 'expo-document-picker';
 import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 
-const dummyMessages = [
-  { id: '1', text: 'Hello! How can I help you today?', sender: 'bot' },
-  { id: '2', text: 'I have a question about my pregnancy.', sender: 'user' },
-  { id: '3', text: 'Of course, ask away!', sender: 'bot' },
-];
+// const dummyMessages = [
+//   { id: '1', text: 'Hello! How can I help you today?', sender: 'bot' },
+//   { id: '2', text: 'I have a question about my pregnancy.', sender: 'user' },
+//   { id: '3', text: 'Of course, ask away!', sender: 'bot' },
+// ];
 
 const { width } = Dimensions.get('window');
 
 const HistoryDrawer = ({ isOpen, onClose }) => {
   const translateX = useSharedValue(-width);
+
+
 
   useEffect(() => {
     translateX.value = withSpring(isOpen ? 0 : -width, { damping: 100 });
@@ -60,8 +63,52 @@ const HistoryDrawer = ({ isOpen, onClose }) => {
 };
 
 export default function ChatBot() {
-  const [messages, setMessages] = useState(dummyMessages);
+  const [messages, setMessages] = useState([
+    {id:1, text: 'Hello! How can I help you today?', sender: 'bot' },
+
+  ]);
   const [isDrawerOpen, setDrawerOpen] = useState(false);
+  const [input, setInput] = useState('')
+  const api_key = "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"
+
+   const handleSend = async ()=>{
+
+    setMessages(prev => [...prev,{id : prev.length+1, text: input, sender: 'user' }]);
+    setInput('');
+    
+
+    try{
+
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:"POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${api_key}`, 
+      },
+      body: JSON.stringify({
+        model: "meta-llama/llama-4-scout-17b-16e-instruct",
+        messages: [
+          {
+            "role":"system",
+            "content":"You are an ai assistant."
+          },
+          {
+            "role": "user",
+            "content": input
+          }
+        ],
+      })
+    })
+
+    const resp = await response.json()
+    setMessages(prev => [...prev,{id : prev.length+1, text: resp.choices[0].message.content ,sender:"bot"}])
+      }catch(err){
+        console.log(err)
+
+      }
+
+  }
 
   const handleFileUpload = async () => {
     try {
@@ -115,10 +162,11 @@ export default function ChatBot() {
                 style={styles.search}
                 placeholder="How can I help you?"
                 multiline
-              />
+                value={input}
+                onChange={(e)=> setInput(e.nativeEvent.text)} />
             </View>
 
-            <Pressable onPress={() => console.log('Send pressed')}>
+            <Pressable onPress={handleSend}>
               {({ pressed }) => (
                 <ArrowRight
                   color="black"
