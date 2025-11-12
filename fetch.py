@@ -1,56 +1,48 @@
-# fetch.py
-# from flask import Flask, request, jsonify
-# from flask_cors import CORS
-# import  Main_agents from agent
-# import requests
-
-# app = Flask(_name_)
-# CORS(app) 
-
-# EXPRESS_API = "http://localhost:3000/api"
-
-# @app.route("/run-agent", methods=["POST"])
-# def run_agent():
-#     print("1----")
-#     auth_header = request.headers.get("Authorization")
-#     user_query = request.json.get("query")
-
-#     print({"user_quer":user_query, "auth_header":auth_header})
-
-#     # Return a JSON response
-#     obj = Main_agents()
-#     obj.agent(user_query)
-#     return jsonify({
-#         "status": "success",
-#         "message": "Data received",
-#         "your_query": user_query
-#     })
-
-
-# if _name_ == "_main_":
-#     app.run(debug=True, host='0.0.0.0')
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from agent import MainAgent  # Corrected import
-import requests
+from agent import MainAgent
+import os
+import logging
 
-app = Flask(_name_)
+logging.basicConfig(level=logging.INFO)
+
+app = Flask(__name__)
 CORS(app)
 
-agent = MainAgent()
+# Provide your Groq/OpenAI-like API key here (keep secret)
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+agent = MainAgent(groq_api_key=GROQ_API_KEY)
+
 
 @app.route("/run-agent", methods=["POST"])
 def run_agent():
-    print("1----")
-    auth_header = request.headers.get("Authorization")
-    user_query = request.json.get("query")
-    user_context = request.json.get("context")
-    print({"user_query": user_query, "auth_header": auth_header})
+    logging.info("Received /run-agent request")
+    auth_header = request.headers.get("Authorization", "")
+    body = request.get_json(silent=True) or {}
+    user_query = body.get("query", "")
+    user_context = body.get("context", None)
 
-    # Call the 'run' method with the query and auth token
+    # Basic validation
+    if not user_query:
+        return jsonify({"status": "error", "message": "Missing 'query' in body"}), 400
+
+    # Extract bearer if present
+    only_auth = None
+    if auth_header:
+        parts = auth_header.split()
+        if len(parts) == 2 and parts[0].lower() == "bearer":
+            only_auth = parts[1]
+        else:
+            # If a different format is used, just try the last piece
+            only_auth = parts[-1] if parts else None
+
+    # set agent dynamic state
     agent.dynamic_user_context = user_context
-    result = agent.run(query=user_query, auth_token=auth_header)
+    agent.auth_bearer = only_auth
+
+    logging.info("Invoking agent with query: %s", user_query)
+    result = agent.run(query=user_query)
 
     return jsonify({
         "status": "success",
@@ -59,5 +51,6 @@ def run_agent():
         "agent_result": result
     })
 
-if _name_ == "_main_":
+
+if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0")
