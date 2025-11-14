@@ -55,7 +55,7 @@ export default function GetStarted() {
                 keyboardShouldPersistTaps="handled"
             >
                 <View style={styles.above}>
-                    <Image source={require('../../assets/images/fetus.png')} style={{ width: 200, height: 200 }} />
+                    <Image source={require('../assets/images/fetus.png')} style={{ width: 200, height: 200 }} />
                     <View style={styles.cont}>
                         <Text style={styles.title}>Log in</Text>
                         <Text style={styles.para}>Login to your exisiting account</Text>

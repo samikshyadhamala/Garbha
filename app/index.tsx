@@ -29,7 +29,7 @@ export default function HomeScreen() {
    <>
 
    <View style={styles.container}>
-    <Image source={require('../../assets/images/fetus.png')} style={{ width: 220, height: 200 }}  ></Image>
+    <Image source={require('../assets/images/fetus.png')} style={{ width: 220, height: 200 }}  ></Image>
     <View style={styles.cont}>
 
 

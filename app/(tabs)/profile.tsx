@@ -3,6 +3,8 @@ import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Modal, Tex
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from "react-native";
 import Markdown from 'react-native-markdown-display';
+import { useRouter } from 'expo-router';
+
 
 const Profile = () => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -16,6 +18,8 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [date, setDate] = useState("monthly")
+  const router = useRouter();
+
 
 
     useEffect(() => {
@@ -163,6 +167,25 @@ const Profile = () => {
     }
   }
 
+  const LogOut = async ()=>{
+    const token = await AsyncStorage.getItem('token');
+    const response = await fetch("https://garbha.onrender.com/api/auth/pregnancy-profile", {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const resp = await response.json()
+
+      if (resp.success){
+        router.push('/login');
+
+
+      }
+
+  }
+
   return (
     <>
    
@@ -287,8 +310,8 @@ const Profile = () => {
           <Text style={styles.optionText}>Terms and Conditions</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.deleteButton}>
-          <Text style={styles.deleteButtonText}>Delete account</Text>
+        <TouchableOpacity style={styles.deleteButton} onPress={LogOut}>
+          <Text style={styles.deleteButtonText}>LogOut account</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
