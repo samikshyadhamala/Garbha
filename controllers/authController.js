@@ -446,7 +446,7 @@ exports.login = async (req, res) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const user = await User.findOne({ email: normalizedEmail });
+    const user = await Userprofile({ email: normalizedEmail });
 
     if (!user) {
       return res.status(401).json({ 
