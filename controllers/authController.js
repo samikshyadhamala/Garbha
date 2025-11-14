@@ -114,7 +114,7 @@ exports.sendOtp = async (req, res) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    let user = await User.findOne({ email: normalizedEmail });
+    let user = await Userprofile({ email: normalizedEmail });
 
     // Check if user already exists and is verified
     if (user && user.isVerified) {
@@ -212,7 +212,7 @@ exports.verifyOtp = async (req, res) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const user = await User.findOne({ email: normalizedEmail });
+    const user = await Userprofile({ email: normalizedEmail });
 
     if (!user) {
       return res.status(404).json({ 
