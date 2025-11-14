@@ -4,24 +4,17 @@ const UserPregnancyProfile = require("../models/userPregnancyProfile");
 const jwt = require("jsonwebtoken");
 const sendEmail = require("../utils/email");
 
-// Constants for OTP management
 const OTP_EXPIRY_MINUTES = 10;
 const MAX_OTP_ATTEMPTS = 5;
 const OTP_RESEND_COOLDOWN_MINUTES = 2;
 const MAX_DAILY_OTP_REQUESTS = 10;
 
-// -------------------- HELPER FUNCTIONS --------------------
 
-/**
- * Generate a 6-digit OTP
- */
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-/**
- * Check if user has exceeded daily OTP limit
- */
+
 const checkDailyOTPLimit = (user) => {
   if (!user.otpRequestCount || !user.otpRequestCountResetDate) {
     return false;
@@ -29,7 +22,7 @@ const checkDailyOTPLimit = (user) => {
 
   const now = new Date();
   const resetDate = new Date(user.otpRequestCountResetDate);
-  
+
   // Reset counter if it's a new day
   if (now.toDateString() !== resetDate.toDateString()) {
     return false;
@@ -43,10 +36,10 @@ const checkDailyOTPLimit = (user) => {
  */
 const checkOTPCooldown = (user) => {
   if (!user.lastOtpSentAt) return false;
-  
+
   const cooldownMs = OTP_RESEND_COOLDOWN_MINUTES * 60 * 1000;
   const timeSinceLastOTP = Date.now() - new Date(user.lastOtpSentAt).getTime();
-  
+
   return timeSinceLastOTP < cooldownMs;
 };
 
@@ -55,17 +48,39 @@ const checkOTPCooldown = (user) => {
  */
 const updateOTPTracking = (user) => {
   const now = new Date();
-  
+
   // Reset daily counter if it's a new day
-  if (!user.otpRequestCountResetDate || 
-      now.toDateString() !== new Date(user.otpRequestCountResetDate).toDateString()) {
+  if (!user.otpRequestCountResetDate ||
+    now.toDateString() !== new Date(user.otpRequestCountResetDate).toDateString()) {
     user.otpRequestCount = 0;
     user.otpRequestCountResetDate = now;
   }
-  
+
   user.otpRequestCount = (user.otpRequestCount || 0) + 1;
   user.lastOtpSentAt = now;
 };
+
+function calculatePregnancyInfo(daysPregnant) {
+  if (typeof daysPregnant !== "number" || daysPregnant < 0) {
+    throw new Error("Invalid input: daysPregnant must be a non-negative number");
+  }
+
+  const weeks = Math.floor(daysPregnant / 7);
+  const days = daysPregnant % 7;
+
+  // Calculate start date
+  const currentDate = new Date();
+  const startDate = new Date(currentDate);
+  startDate.setDate(currentDate.getDate() - daysPregnant);
+
+  return {
+    weeks,
+    days,
+    formattedWeeks: `${weeks} week(s) and ${days} day(s)`,
+    currentDate: currentDate.toISOString().split("T")[0], // YYYY-MM-DD
+    pregnancyStartDate: startDate.toISOString().split("T")[0] // YYYY-MM-DD
+  };
+}
 
 /**
  * Process list fields for pregnancy profile
@@ -90,31 +105,31 @@ exports.sendOtp = async (req, res) => {
 
     // Validation
     if (!firstName || !lastName || !email || !password) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "First name, last name, email, and password are required" 
+      return res.status(400).json({
+        success: false,
+        message: "First name, last name, email, and password are required"
       });
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid email format" 
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email format"
       });
     }
 
     // Validate password strength (minimum 6 characters)
     if (password.length < 6) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Password must be at least 6 characters long" 
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters long"
       });
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    let user = await Userprofile({ email: normalizedEmail });
+    let user = await User.findOne({ email: normalizedEmail });
 
     // Check if user already exists and is verified
     if (user && user.isVerified) {
@@ -131,15 +146,15 @@ exports.sendOtp = async (req, res) => {
         message: "Maximum OTP requests exceeded for today. Please try again tomorrow.",
       });
     }
-
+ 
     // Check OTP cooldown
-    if (user && checkOTPCooldown(user)) {
-      const waitTime = OTP_RESEND_COOLDOWN_MINUTES;
-      return res.status(429).json({
-        success: false,
-        message: `Please wait ${waitTime} minutes before requesting another OTP.`,
-      });
-    }
+    // if (user && checkOTPCooldown(user)) {
+    //   const waitTime = OTP_RESEND_COOLDOWN_MINUTES;
+    //   return res.status(429).json({
+    //     success: false,
+    //     message: `Please wait ${waitTime} minutes before requesting another OTP.`,
+    //   });
+    // }
 
     // Generate new OTP
     const otpCode = generateOTP();
@@ -170,33 +185,34 @@ exports.sendOtp = async (req, res) => {
     // Send OTP email
     try {
       await sendEmail(
-        normalizedEmail, 
-        "Your OTP Verification Code", 
+        normalizedEmail,
+        "Your OTP Verification Code",
         `Your OTP code is ${otpCode}. This code will expire in ${OTP_EXPIRY_MINUTES} minutes. If you didn't request this code, please ignore this email.`
       );
     } catch (emailError) {
       console.error("Error sending OTP email:", emailError);
-      return res.status(500).json({ 
-        success: false, 
-        message: "Failed to send OTP email. Please try again." 
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send OTP email. Please try again."
       });
     }
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       message: "OTP sent successfully to your email",
-      expiresIn: OTP_EXPIRY_MINUTES 
+      expiresIn: OTP_EXPIRY_MINUTES
     });
 
   } catch (error) {
     console.error("Error in sendOtp:", error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: "An error occurred while processing your request",
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
+
 
 // -------------------- VERIFY OTP (Basic Verification Only) --------------------
 exports.verifyOtp = async (req, res) => {
@@ -204,15 +220,19 @@ exports.verifyOtp = async (req, res) => {
     const { email, otp } = req.body;
 
     // Validation
+    console.log("this is email : ", email)
+    console.log("this is otp : ", otp)
     if (!email || !otp) {
       return res.status(400).json({ 
         success: false, 
         message: "Email and OTP are required" 
       });
     }
-
+    
     const normalizedEmail = email.trim().toLowerCase();
-    const user = await Userprofile({ email: normalizedEmail });
+    console.log("this is normalized : ", normalizedEmail)
+    const user = await User.findOne({ email: normalizedEmail });
+    console.log("this is user : ", user)
 
     if (!user) {
       return res.status(404).json({ 
@@ -230,7 +250,7 @@ exports.verifyOtp = async (req, res) => {
     }
 
     // Check if OTP exists
-    if (!user.otp || !user.otpExpires) {
+    if (!user.otp || !user.otpExpires){
       return res.status(400).json({ 
         success: false, 
         message: "No OTP found. Please request a new OTP." 
@@ -271,31 +291,38 @@ exports.verifyOtp = async (req, res) => {
       });
     }
 
-    // OTP is valid - Finalize user verification
+    // OTP is valid - Finalize user verification and create profile
     const firstName = user.tempFirstName;
     const lastName = user.tempLastName;
+    const password = user.tempPassword;
 
-    if (!firstName || !lastName) {
+    if (!firstName || !lastName || !password) {
       return res.status(400).json({ 
         success: false, 
         message: "User data incomplete. Please sign up again." 
       });
     }
 
-    // Move temp data to permanent fields
-    user.isVerified = true;
-    
-    if (user.tempPassword) {
-      user.password = user.tempPassword;
-      user.tempPassword = undefined;
-    }
+    // Create the UserProfile
+    const userProfile = new UserProfile({
+      user: user._id,
+      email: user.email,
+      firstName: firstName,
+      lastName: lastName,
+      password: password, // The password from tempPassword will be hashed by the pre-save hook in User model
+    });
+    await userProfile.save();
 
-    // Clear OTP data
+    // Update the main User document
+    user.isVerified = true;
+    user.password = password; // Move password to permanent field
+    user.tempFirstName = undefined;
+    user.tempLastName = undefined;
+    user.tempPassword = undefined;
     user.otp = undefined;
     user.otpExpires = undefined;
     user.otpAttempts = 0;
     
-    // Keep temp names for profile creation
     await user.save();
 
     // Generate token
@@ -303,10 +330,11 @@ exports.verifyOtp = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "OTP verified successfully. Please complete your profile.",
+      message: "OTP verified successfully. Profile created.",
       token,
       userId: user._id,
-      requiresProfileCompletion: true
+      profile: userProfile,
+      requiresProfileCompletion: false // Profile is now complete
     });
 
   } catch (error) {
@@ -317,7 +345,8 @@ exports.verifyOtp = async (req, res) => {
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
-};
+};  
+
 
 // -------------------- COMPLETE PROFILE (Separate Step) --------------------
 exports.completeProfile = async (req, res) => {
@@ -326,18 +355,18 @@ exports.completeProfile = async (req, res) => {
     const { age, profileImage, pregnancyData } = req.body;
 
     const user = await User.findById(userId);
-    
+
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "User not found" 
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
       });
     }
 
     if (!user.isVerified) {
-      return res.status(403).json({ 
-        success: false, 
-        message: "Please verify your email first" 
+      return res.status(403).json({
+        success: false,
+        message: "Please verify your email first"
       });
     }
 
@@ -346,15 +375,15 @@ exports.completeProfile = async (req, res) => {
     const lastName = user.tempLastName;
 
     if (!firstName || !lastName) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "User information incomplete" 
+      return res.status(400).json({
+        success: false,
+        message: "User information incomplete"
       });
     }
 
     // Create general profile
     let profile = await UserProfile.findOne({ user: userId });
-    
+
     if (!profile) {
       profile = new UserProfile({
         user: userId,
@@ -379,15 +408,15 @@ exports.completeProfile = async (req, res) => {
 
     // Create pregnancy profile if data provided
     let pregnancyProfile = null;
-    
+
     if (pregnancyData) {
       pregnancyProfile = await UserPregnancyProfile.findOne({ user: userId });
-      
+
       if (!pregnancyProfile) {
         if (pregnancyData.weeksPregnant == null) {
-          return res.status(400).json({ 
-            success: false, 
-            message: "Weeks pregnant is required for pregnancy profile" 
+          return res.status(400).json({
+            success: false,
+            message: "Weeks pregnant is required for pregnancy profile"
           });
         }
 
@@ -399,7 +428,7 @@ exports.completeProfile = async (req, res) => {
           lifestyle: {
             smoke: pregnancyData.lifestyle?.smoke ?? false,
             alcohol: pregnancyData.lifestyle?.alcohol ?? false,
-            familyHistoryPregnancyComplications: 
+            familyHistoryPregnancyComplications:
               pregnancyData.lifestyle?.familyHistoryPregnancyComplications ?? false,
           },
           preferredName: pregnancyData.preferredName || "none",
@@ -407,9 +436,9 @@ exports.completeProfile = async (req, res) => {
           weightBeforePregnancy: pregnancyData.weightBeforePregnancy ?? null,
         };
 
-        pregnancyProfile = new UserPregnancyProfile({ 
-          user: userId, 
-          ...pregnancyDataProcessed 
+        pregnancyProfile = new UserPregnancyProfile({
+          user: userId,
+          ...pregnancyDataProcessed
         });
         await pregnancyProfile.save();
       }
@@ -424,8 +453,8 @@ exports.completeProfile = async (req, res) => {
 
   } catch (error) {
     console.error("Error in completeProfile:", error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: "An error occurred while completing profile",
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
@@ -433,72 +462,89 @@ exports.completeProfile = async (req, res) => {
 };
 
 // -------------------- LOGIN --------------------
-Userprofile = async (req, res) => {
+exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    console.log(email)
+    console.log(password)
+
     // Validation
     if (!email || !password) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Email and password are required" 
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required"
       });
     }
+
+    console.log("STEP 1 clear")
 
     const normalizedEmail = email.trim().toLowerCase();
-    const user = await Userprofile({ email: normalizedEmail });
+    console.log("Normalized : ", normalizedEmail)
+    const user = await UserProfile.findOne({ email: normalizedEmail });
+    console.log("STEP 2 clear")
+    console.log("User : ", user)
 
     if (!user) {
-      return res.status(401).json({ 
-        success: false, 
-        message: "Invalid email or password" 
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password"
       });
     }
+    console.log("STEP 3 clear")
 
     // Check if user is verified
     if (!user.isVerified) {
-      return res.status(403).json({ 
-        success: false, 
-        message: "Please verify your email first. Check your inbox for the OTP." 
+      return res.status(403).json({
+        success: false,
+        message: "Please verify your email first. Check your inbox for the OTP."
       });
     }
+    console.log("STEP 4 clear")
+
+    console.log("USER password : ", user.password)
 
     if (!user.password) {
-      return res.status(401).json({ 
-        success: false, 
-        message: "Invalid email or password" 
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password"
       });
     }
+    console.log("STEP 5 clear")
 
     // Verify password
-    const match = await user.matchPassword(password.trim());
-    
+    const match = await user.matchPassword(password.trim(), user.password);
+    console.log("mathch", match)
+
     if (!match) {
-      return res.status(401).json({ 
-        success: false, 
-        message: "Invalid email or password" 
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password"
       });
     }
+    console.log("STEP 6 clear")
 
     // Fetch user profiles
     const profile = await UserProfile.findOne({ user: user._id });
+    console.log("Profile", profile)
     const pregnancyProfile = await UserPregnancyProfile.findOne({ user: user._id });
 
     // Generate token
     const token = generateToken(user._id);
+    console.log("token", token)
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       message: "Login successful",
-      profile, 
-      pregnancyProfile, 
-      token 
+      profile,
+      pregnancyProfile,
+      token
     });
 
   } catch (error) {
     console.error("Error in login:", error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: "An error occurred during login",
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
@@ -508,13 +554,27 @@ Userprofile = async (req, res) => {
 // -------------------- GET GENERAL PROFILE --------------------
 exports.getUserProfile = async (req, res) => {
   try {
-    const profile = await UserProfile.findOne({ user: req.user.id });
-    
+    let profile = await UserProfile.findOne({ user: req.user.id });
+    console.log("Profile : ", profile)
+
+    // If profile doesn't exist for a valid user, create one
     if (!profile) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Profile not found" 
+      // The req.user object from the 'protect' middleware might not have all fields.
+      // It's better to fetch the full user document.
+      const user = await User.findById(req.user.id);
+
+      if (!user) {
+        return res.status(404).json({ success: false, message: "User not found" });
+      }
+
+      profile = new UserProfile({
+        user: user._id,
+        email: user.email,
+        firstName: user.firstName || "Firstname", // Fallback value
+        lastName: user.lastName || "Lastname",   // Fallback value
+        password: user.password,
       });
+      await profile.save();
     }
 
     res.status(200).json({ success: true, profile });
@@ -536,11 +596,11 @@ exports.updateUserProfile = async (req, res) => {
     const data = req.body;
 
     const profile = await UserProfile.findOne({ user: userId });
-    
+
     if (!profile) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Profile not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Profile not found"
       });
     }
 
@@ -552,21 +612,23 @@ exports.updateUserProfile = async (req, res) => {
     Object.assign(profile, data);
     await profile.save();
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Profile updated successfully", 
-      profile 
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      profile
     });
 
   } catch (error) {
     console.error("Error in updateUserProfile:", error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: "An error occurred while updating profile",
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
+
+
 
 // -------------------- CREATE/UPDATE PREGNANCY PROFILE --------------------
 exports.createOrUpdatePregnancyProfile = async (req, res) => {
@@ -574,20 +636,31 @@ exports.createOrUpdatePregnancyProfile = async (req, res) => {
     const userId = req.user.id;
     const data = req.body;
 
+    console.log("this si suserid : ", userId)
+    console.log("this si data : ", data)
+    
     // Validation
     if (!data.bloodType) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Blood type is required" 
+      return res.status(400).json({
+        success: false,
+        message: "Blood type is required"
       });
     }
+    console.log("I have passed blood type")
+    
+    const numberdays = Number(data.pregnantDays)
+    console.log("Numberdays: ", numberdays)
+    const Weeks = calculatePregnancyInfo(numberdays)
+    console.log("weeks: ", Weeks)
+    
 
-    if (data.weeksPregnant == null) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Weeks pregnant is required" 
-      });
-    }
+
+    // if (data.weeksPregnant == null) {
+    //   return res.status(400).json({ 
+    //     success: false, 
+    //     message: "Weeks pregnant is required" 
+    //   });
+    // }
 
     // Parse dates
     if (data.lmp) data.lmp = new Date(data.lmp);
@@ -598,10 +671,11 @@ exports.createOrUpdatePregnancyProfile = async (req, res) => {
       preExistingConditions: processListField(data.preExistingConditions),
       allergies: processListField(data.allergies),
       medications: processListField(data.medications),
+      weeksPregnant: Weeks.weeks,
       lifestyle: {
         smoke: data.lifestyle?.smoke ?? false,
         alcohol: data.lifestyle?.alcohol ?? false,
-        familyHistoryPregnancyComplications: 
+        familyHistoryPregnancyComplications:
           data.lifestyle?.familyHistoryPregnancyComplications ?? false,
       },
       preferredName: data.preferredName || "none",
@@ -615,31 +689,31 @@ exports.createOrUpdatePregnancyProfile = async (req, res) => {
       // Update existing profile
       Object.assign(profile, pregnancyDataProcessed);
       await profile.save();
-      
-      return res.status(200).json({ 
-        success: true, 
-        message: "Pregnancy profile updated successfully", 
-        profile 
+
+      return res.status(200).json({
+        success: true,
+        message: "Pregnancy profile updated successfully",
+        profile
       });
     } else {
       // Create new profile
-      profile = new UserPregnancyProfile({ 
-        user: userId, 
-        ...pregnancyDataProcessed 
+      profile = new UserPregnancyProfile({
+        user: userId,
+        ...pregnancyDataProcessed
       });
       await profile.save();
-      
-      return res.status(201).json({ 
-        success: true, 
-        message: "Pregnancy profile created successfully", 
-        profile 
+
+      return res.status(201).json({
+        success: true,
+        message: "Pregnancy profile created successfully",
+        profile
       });
     }
 
   } catch (error) {
     console.error("Error in createOrUpdatePregnancyProfile:", error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: "An error occurred while processing pregnancy profile",
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
@@ -650,11 +724,11 @@ exports.createOrUpdatePregnancyProfile = async (req, res) => {
 exports.getPregnancyProfile = async (req, res) => {
   try {
     const profile = await UserPregnancyProfile.findOne({ user: req.user.id });
-    
+
     if (!profile) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Pregnancy profile not found" 
+      return res.status(404).json({
+        success: false,
+        message: "Pregnancy profile not found"
       });
     }
 
@@ -662,8 +736,8 @@ exports.getPregnancyProfile = async (req, res) => {
 
   } catch (error) {
     console.error("Error in getPregnancyProfile:", error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: "An error occurred while fetching pregnancy profile",
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
