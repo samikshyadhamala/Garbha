@@ -1,126 +1,66 @@
-const Document = require("../models/Document");
+// documentroutes.js
+
+const express = require("express");
+const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const { protect } = require("../middleware/authMiddleware");
+const {
+  uploadDocument,
+  getDocuments,
+  downloadDocument,
+  deleteDocument,
+  viewDocument
+} = require("../controllers/documentController");
 
-// Helper to build file URLs
-const buildFileUrl = (req, doc) => {
-  const protocol = req.protocol;
-  const host = req.get("host");
-  return `${protocol}://${host}/api/documents/download/${doc._id}`;
+const router = express.Router();
+
+// Apply auth middleware to all routes
+router.use(protect);
+
+// Multer config
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadsDir = path.join(__dirname, "../uploads");
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+// Allow PDFs, DOC/DOCX, and images
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/gif",
+  "application/octet-stream" // add as fallback while testing
+];
+
+  if (allowedTypes.includes(file.mimetype)) cb(null, true);
+  else cb(new Error("Only PDF, DOC, DOCX, JPG, PNG, GIF files are allowed"), false);
 };
 
-// Upload document
-exports.uploadDocument = async (req, res) => {
-  try {
-    const file = req.file;
-    if (!file) return res.status(400).json({ message: "No file uploaded" });
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+});
 
-    await Document.create({
-      user: req.user._id, // authenticated user
-      originalName: file.originalname,
-      filename: file.filename,
-      mimeType: file.mimetype,
-      size: file.size,
-    });
+// Routes
+router.post("/upload",upload.single("file"), uploadDocument);
+router.get("/", getDocuments);
+router.get("/download/:id", downloadDocument);
+router.delete("/:id", deleteDocument);
+router.get("/view/:id", viewDocument);
 
-    const docs = await Document.find({ user: req.user._id });
-    const docsWithUrl = docs.map(doc => ({
-      _id: doc._id,
-      originalName: doc.originalName,
-      uploadedAt: doc.uploadedAt,
-      downloadUrl: buildFileUrl(req, doc),
-    }));
-
-    res.json({ message: "File uploaded successfully", documents: docsWithUrl });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// Get all documents
-exports.getDocuments = async (req, res) => {
-  try {
-    const docs = await Document.find({ user: req.user._id });
-    const docsWithUrl = docs.map(doc => ({
-      _id: doc._id,
-      originalName: doc.originalName,
-      uploadedAt: doc.uploadedAt,
-      downloadUrl: buildFileUrl(req, doc),
-    }));
-
-    res.json(docsWithUrl);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// Download a document
-exports.downloadDocument = async (req, res) => {
-  try {
-    const doc = await Document.findById(req.params.id);
-    if (!doc) return res.status(404).json({ message: "Document not found" });
-    if (doc.user.toString() !== req.user._id.toString())
-      return res.status(403).json({ message: "Not authorized" });
-
-    const filePath = path.join(__dirname, "../uploads", doc.filename);
-    res.download(filePath, doc.originalName);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// Delete a document
-exports.deleteDocument = async (req, res) => {
-  try {
-    const doc = await Document.findById(req.params.id);
-    if (!doc) return res.status(404).json({ message: "Document not found" });
-    if (doc.user.toString() !== req.user._id.toString())
-      return res.status(403).json({ message: "Not authorized" });
-
-    // Delete file from uploads folder
-    const filePath = path.join(__dirname, "../uploads", doc.filename);
-    fs.unlink(filePath, (err) => {
-      if (err) console.error("Error deleting file:", err);
-    });
-
-    // Remove metadata from DB
-    await doc.deleteOne();
-
-    const docs = await Document.find({ user: req.user._id });
-    const docsWithUrl = docs.map(d => ({
-      _id: d._id,
-      originalName: d.originalName,
-      uploadedAt: d.uploadedAt,
-      downloadUrl: buildFileUrl(req, d),
-    }));
-
-    res.json({ message: "Document deleted successfully", documents: docsWithUrl });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// View document
-exports.viewDocument = async (req, res) => {
-  try {
-    const doc = await Document.findById(req.params.id);
-    if (!doc) return res.status(404).json({ message: "Document not found" });
-    if (doc.user.toString() !== req.user._id.toString())
-      return res.status(403).json({ message: "Not authorized" });
-
-    const filePath = path.join(__dirname, "../uploads", doc.filename);
-    const ext = path.extname(doc.filename).toLowerCase();
-
-    if (ext === ".pdf") res.contentType("application/pdf");
-    else if (ext === ".doc") res.contentType("application/msword");
-    else if (ext === ".docx")
-      res.contentType(
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      );
-    else res.contentType("application/octet-stream");
-
-    res.sendFile(filePath);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
+module.exports = router;
