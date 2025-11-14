@@ -433,7 +433,7 @@ exports.completeProfile = async (req, res) => {
 };
 
 // -------------------- LOGIN --------------------
-exports.login = async (req, res) => {
+Userprofile = async (req, res) => {
   try {
     const { email, password } = req.body;
 
