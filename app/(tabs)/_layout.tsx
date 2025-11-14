@@ -51,6 +51,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="file"
+        options={{
+          title: 'Upload',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="icloud.and.arrow.up.fill" color={color} />,
+        }}
+      />
     </Tabs>
   );
 }

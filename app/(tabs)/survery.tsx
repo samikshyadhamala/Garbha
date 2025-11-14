@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
-  ScrollView, 
+  ScrollView,
   Alert,
   Switch,
 } from "react-native";
@@ -16,6 +16,7 @@ import { Picker } from "@react-native-picker/picker";
 
 // 👶 Import your local image
 import heartBaby from "../../assets/images/fetus.png";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function SurveyScreen() {
   const [formData, setFormData] = useState({
@@ -27,7 +28,7 @@ export default function SurveyScreen() {
     lmp: "",
     dueDate: "",
     firstPregnancy: true,
-    weeksPregnant: "",
+    // weeksPregnant: "",
     previousPregnancies: "",
     previousComplications: false,
     bloodType: "",
@@ -39,7 +40,7 @@ export default function SurveyScreen() {
     alcohol: null,
     familyHistory: false,
   });
-   const router = useRouter();
+  const router = useRouter();
 
   const handleChange = (key, value) => {
     setFormData({ ...formData, [key]: value });
@@ -61,28 +62,37 @@ export default function SurveyScreen() {
     }
   };
 
-  
-    const handleSubmit = async ()=>{
-        const response = await fetch('http://192.168.123.7:3000/api/auth/pregnancy-profile',{
-            method:"POST",
-            headers:{
-                "Content-type":"application/json"
-            },
-            body: JSON.stringify(formData)
 
-        })
+  const handleSubmit = async () => {
+    try{
 
-        const resp = await response.json()
-        if (!resp.success) {
-                Alert.alert(resp.message)
-            }
+      const token = await AsyncStorage.getItem('token'); 
+      console.log("THis is a token : ", token)
+      const response = await fetch('https://garbha.onrender.com/api/auth/pregnancy-profile', {
+        method: "POST",
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        "Content-type": "application/json"
+      },
+      body: JSON.stringify(formData)
 
-            if (resp.success) {
-                Alert.prompt("Successfully signed in")
-                router.push('/(tabs)/verify')
-            }
-        console.log(response)
+    })
+    console.log("this is reposnse from survey------",response)
+    const resp = await response.json()
+    console.log(resp)
+    if (!resp.success) {
+      Alert.alert(resp.message)
     }
+    
+    if (resp.success) {
+      Alert.prompt("Successfully signed in")
+      router.push('/(tabs)/verify')
+    }
+    console.log(response)
+  }catch(error){
+    console.error(error)
+  }
+  }
 
 
   // const handleSubmit = () => {
@@ -184,13 +194,13 @@ export default function SurveyScreen() {
           />
         </View>
 
-        <Text style={styles.label}>Weeks Pregnant</Text>
+        {/* <Text style={styles.label}>Weeks Pregnant</Text>
         <TextInput
           style={styles.input}
           value={formData.weeksPregnant}
           onChangeText={(text) => handleChange("weeksPregnant", text)}
           keyboardType="numeric"
-        />
+        /> */}
 
         <Text style={styles.label}>Previous Pregnancies</Text>
         <TextInput
@@ -215,7 +225,7 @@ export default function SurveyScreen() {
           style={styles.selects}
         >
           <Picker.Item label="Select Blood Type" value="" />
-          {[ "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-" ].map((type) => (
+          {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((type) => (
             <Picker.Item key={type} label={type} value={type} />
           ))}
         </Picker>
@@ -230,7 +240,7 @@ export default function SurveyScreen() {
             <Text style={styles.pretext}>
               {formData.preExistingConditions.includes(condition) ? "☑" : "☐"}{" "}
               {condition}
-            
+
             </Text>
           </TouchableOpacity>
         ))}
@@ -360,7 +370,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 10,
   },
-  selects:{
+  selects: {
     backgroundColor: "#fff",
     borderRadius: 15,
     padding: 0,
@@ -370,7 +380,7 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
 
   },
-  pretext:{
-    color:"white",
+  pretext: {
+    color: "white",
   }
 });

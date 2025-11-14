@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Modal, TextInput, ActivityIndicator } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from "react-native";
+import Markdown from 'react-native-markdown-display';
 
 const Profile = () => {
-  const [summaryVisible, setSummaryVisible] = useState(false);
-  const [selectedSummary, setSelectedSummary] = useState("Your Summary");
   const [modalVisible, setModalVisible] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
+  const [modalContent, setModalContent] = useState("");
   const [editModalVisible, setEditModalVisible] = useState(false);
 
   const [firstName, setFirstName] = useState("");
@@ -15,26 +15,36 @@ const Profile = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [date, setDate] = useState("monthly")
 
 
-  useEffect(() => {
+    useEffect(() => {
+    fetchProfile();
+  }, []);
+
     const fetchProfile = async () => {
       try {
-        const token = await AsyncStorage.getItem('token'); // or SecureStore, depending on your setup
+        const token = await AsyncStorage.getItem('token');
+        console.log("This is token : ", token)
 
-        const response = await fetch("http://localhost:3000/api/auth/profile", {
+        const response = await fetch("https://garbha.onrender.com/api/auth/profile", {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         });
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
         const data = await response.json();
-        setFirstName(data.profile.firstName);
-        setLastName(data.profile.lastName);
-        setEmail(data.profile.email);
+        console.log("this is the one data : ",data)
+        if (!response.ok) {
+          throw new Error(data.message || 'Network response was not ok');
+        }
+        if (data.profile) {
+          setFirstName(data.profile.firstName);
+          setLastName(data.profile.lastName);
+          setEmail(data.profile.email);
+        } else {
+          setError('Profile not found.');
+        }
       } catch (error) {
         setError(error.message);
       } finally {
@@ -42,26 +52,21 @@ const Profile = () => {
       }
     };
 
-    fetchProfile();
-  }, []);
-
-// const handleSave = () => {
-//   const updatedData = {
-//     firstName: 'Abhinav',
-//     lastName: 'Shrestha',
-//     phone: '9800000000',
-//     // other editable fields
-//   };
-
-//   updateProfile(updatedData);
-// };
-
+  const handleSave = () => {
+    const updatedData = {
+      firstName,
+      lastName,
+      email,
+    };
+    updateProfile(updatedData);
+    setEditModalVisible(false);
+  };
 
   const updateProfile = async (updatedData) => {
     try {
       const token = await AsyncStorage.getItem('token');
 
-      const response = await fetch("http://localhost:3000/api/auth/profile", {
+      const response = await fetch("https://garbha.onrender.com/api/auth/profile", {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -85,20 +90,82 @@ const Profile = () => {
       console.error('Update profile error:', error);
     }
   };
+  // const fetchUser ()
+  const fetchPregProfile = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        // Handle case where token is not available
+        return;
+      }
+      const response = await fetch("https://garbha.onrender.com/api/auth/pregnancy-profile", {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      const data = await response.json();
+      return data
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleSummarySelection = (summaryType) => {
-    setSelectedSummary(summaryType);
-    setSummaryVisible(false);
-    setModalTitle(summaryType);
+  const handleSummarySelection = (summaryType, date) => {
+    setModalContent(summaryType);
+    setModalTitle(date === 'week' ? "Weekly Summary" : "Monthly Summary");
     setModalVisible(true);
   };
+ 
+  const handleAIreport = async (date) => {
+    const user_data = fetchPregProfile()
+    const api_key = process.env.EXPO_PUBLIC_GROQ_API_KEY;
+    const prompt = `You are a medical expert. You have data about the user and you task is to give either monthly or weekly report based on user demand.
+    The details of users :
+    Firstname : ${firstName}
+    Latname : ${lastName}
 
-  const handleSave = () => {
-    setEditModalVisible(false);
-  };
-
+    ABout user Other details :
+    ${user_data}
+    
+    `
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${api_key}`,
+        },
+        body: JSON.stringify({
+          model: "meta-llama/llama-4-scout-17b-16e-instruct",
+          messages: [
+            {
+              "role": "system",
+              "content": prompt
+            },
+            {
+              "role": "user",
+              "content": `Generate a ${date} summary.`
+            }
+          ],
+        })
+      })
+      const resp = await response.json()
+      console.log("this is res",resp)
+      handleSummarySelection(resp.choices[0].message.content, date)
+    } catch (err) {
+      console.log(err)
+    }
+  }
 
   return (
+    <>
+   
     <ScrollView style={styles.container}>
       <Modal
         animationType="slide"
@@ -114,9 +181,12 @@ const Profile = () => {
               style={[styles.button, styles.buttonClose]}
               onPress={() => setModalVisible(!modalVisible)}
             >
-              <Text style={styles.textStyle}>Hi</Text>
+              <Text style={styles.textStyle}>x</Text>
             </TouchableOpacity>
-            <Text style={styles.modalText}>{modalTitle}</Text>
+            <Text style={styles.modalTitle}>{modalTitle}</Text>
+            <ScrollView style={styles.markdownScroll}>
+              <Markdown style={markdownStyles}>{modalContent}</Markdown>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -191,20 +261,17 @@ const Profile = () => {
       </View>
 
       <View style={styles.section}>
-        <TouchableOpacity onPress={() => setSummaryVisible(!summaryVisible)} style={styles.summaryHeader}>
-          <Text style={styles.sectionTitle}>{selectedSummary}</Text>
-          <Text style={styles.arrow}>{summaryVisible ? "▲" : "▼"}</Text>
-        </TouchableOpacity>
-        {summaryVisible && (
-          <View style={styles.summaryDropdown}>
-            <TouchableOpacity onPress={() => handleSummarySelection("Weekly Summary")} style={styles.summaryOption}>
+        <View style={styles.summaryHeader}>
+          <Text style={styles.sectionTitle}>Your Summary</Text>
+        </View>
+        <View style={styles.summaryDropdown}>
+            <TouchableOpacity onPress={() => handleAIreport("week")} style={styles.summaryOption}>
               <Text style={styles.summaryOptionText}>Weekly Summary</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleSummarySelection("Monthly Summary")} style={styles.summaryOption}>
+            <TouchableOpacity onPress={() => handleAIreport("month")} style={styles.summaryOption}>
               <Text style={styles.summaryOptionText}>Monthly Summary</Text>
             </TouchableOpacity>
-          </View>
-        )}
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -225,7 +292,15 @@ const Profile = () => {
         </TouchableOpacity>
       </View>
     </ScrollView>
+
+     </>
   );
+};
+
+const markdownStyles = {
+  body: {
+    textAlign: 'left',
+  },
 };
 
 const styles = StyleSheet.create({
@@ -351,7 +426,7 @@ const styles = StyleSheet.create({
   textStyle: {
     color: "white",
     fontWeight: "bold",
-    textAlign: "center"
+    textAlign: "center",
   },
   modalText: {
     marginBottom: 15,
@@ -401,6 +476,10 @@ const styles = StyleSheet.create({
   errorText: {
     color: 'red',
     fontSize: 16,
+  },
+  markdownScroll: {
+    alignSelf: 'stretch',
+    paddingHorizontal: 10,
   }
 });
 

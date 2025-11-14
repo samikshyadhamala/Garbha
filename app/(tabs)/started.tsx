@@ -17,7 +17,7 @@ export default function GetStarted() {
         })
 
     const Start = async ()=>{
-        const response = await fetch('http://192.168.123.7:3000/api/auth/signup/send-otp',{
+        const response = await fetch('https://garbha.onrender.com/api/auth/signup/send-otp',{
             method:"POST",
             headers:{
                 "Content-type":"application/json"
@@ -57,8 +57,8 @@ export default function GetStarted() {
                     </View>
                 </View>
                 <View style={styles.below}>
-                    <TextInput style={styles.input} placeholder="Full name" onChangeText={text => setForm(prev => ({ ...prev, firstName: text }))} value={form.firstName} />
-                    <TextInput style={styles.input} placeholder="Full name" onChangeText={text => setForm(prev => ({ ...prev, lastName: text }))} value={form.lastName} />
+                    <TextInput style={styles.input} placeholder="first name" onChangeText={text => setForm(prev => ({ ...prev, firstName: text }))} value={form.firstName} />
+                    <TextInput style={styles.input} placeholder="last name" onChangeText={text => setForm(prev => ({ ...prev, lastName: text }))} value={form.lastName} />
                     <TextInput style={styles.input} placeholder="email" keyboardType="email-address" onChangeText={text => setForm(prev => ({ ...prev, email: text }))}value={form.email} />
                     <TextInput style={styles.input} placeholder="password" secureTextEntry onChangeText={text => setForm(prev => ({ ...prev, password: text }))} value={form.password}/>
                 </View>

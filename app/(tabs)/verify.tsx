@@ -71,7 +71,7 @@ export default function VerifyScreen() {
     setForm(prev => ({ ...prev, email: email, otp: enteredCode }))
     console.log(form.email)
     console.log(form.otp)
-    const response = await fetch('http://192.168.123.7:3000/api/auth/signup/verify-otp', {
+    const response = await fetch('http://192.168.1.8:3000/api/auth/signup/verify-otp', {
       method: "POST",
       headers: {
         "Content-type": "application/json"
