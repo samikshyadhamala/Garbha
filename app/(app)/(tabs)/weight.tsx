@@ -123,7 +123,7 @@ const WeightTracker = () => {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
 
-        <ImageBackground source={require('../../assets/images/mother.jpg')} style={styles.image} >
+        <ImageBackground source={require('../../../assets/images/mother.jpg')} style={styles.image} >
           <View style={styles.overlay}>
             <Text style={styles.title}>Weight Tracker</Text>
             <View style={styles.inputContainer}>

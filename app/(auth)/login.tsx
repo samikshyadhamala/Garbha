@@ -1,27 +1,63 @@
+
 import React, { useState } from 'react';
 import { Image } from 'expo-image';
 import { View, TextInput, StyleSheet, Text, Platform, Pressable, KeyboardAvoidingView, ScrollView, Alert } from 'react-native';
 import Checkbox from 'expo-checkbox';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../context/AuthContext';
 
 export default function GetStarted() {
     const [isChecked, setChecked] = useState(false);
     const router = useRouter()
+    const { setUser } = useAuth();
+    const [login, setLogin] = useState(false)
     const [form, setForm] = useState({
         email: "",
         password: ""
     })
 
+    const fetchProfile = async () => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            console.log("This is token : ", token)
+
+            const response = await fetch("http://192.168.1.5:3000/api/auth/profile", {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+            const data = await response.json();
+            console.log("this is the one data : ", data)
+            if (!response.ok) {
+                throw new Error(data.message || 'Network response was not ok');
+            }
+            if (data.profile) {
+                setLogin(data.profile.firstLogin);
+
+            } else {
+                Alert.alert("Error")
+            }
+        } catch (error) {
+            console.log(error.message);
+        }
+    };
+
+
+    const GoTo = () => {
+        router.push('/auth/started')
+    }
+
     const Log = async () => {
 
         try {
 
-            console.log(form.email)
-            console.log(form.password)
+            console.log("thsi is forma email", form.email)
+            console.log("thsi is forma password", form.password)
 
 
-            const response = await fetch('https://garbha.onrender.com/api/auth/login', {
+            const response = await fetch('http://192.168.1.5:3000/api/auth/login', {
                 method: "POST",
                 headers: {
                     "Content-type": "application/json"
@@ -31,15 +67,19 @@ export default function GetStarted() {
             })
 
             const resp = await response.json()
+            console.log("this is login response : ", resp)
 
             if (!resp.success) {
                 Alert.alert(resp.message)
             }
 
             if (resp.success) {
+                console.log("i am inside success")
+                Alert.alert(resp.message)
                 await AsyncStorage.setItem('token', resp.token);
-                Alert.prompt("Successfully signed in")
-                router.push('/(tabs)/dashbaord')
+                router.replace({ pathname: '/(app)/(tabs)/dashboard' });
+
+                console.log("Hello world")
             }
         } catch (error) {
             console.error(error)
@@ -55,7 +95,7 @@ export default function GetStarted() {
                 keyboardShouldPersistTaps="handled"
             >
                 <View style={styles.above}>
-                    <Image source={require('../assets/images/fetus.png')} style={{ width: 200, height: 200 }} />
+                    <Image source={require('../../assets/images/fetus.png')} style={{ width: 200, height: 200 }} />
                     <View style={styles.cont}>
                         <Text style={styles.title}>Log in</Text>
                         <Text style={styles.para}>Login to your exisiting account</Text>
@@ -74,7 +114,7 @@ export default function GetStarted() {
                 <View style={styles.buttons}>
                     <View style={styles.checkboxContainer}>
 
-                        <Text style={styles.checkboxLabel}>Don't have an account? <Text style={styles.highlight}>SignUp</Text>.</Text>
+                        <Text style={styles.checkboxLabel}>Don't have an account? <Text style={styles.highlight} onPress={GoTo}>SignUp</Text>.</Text>
                     </View>
 
                     <Pressable style={styles.btn} onPress={Log}>

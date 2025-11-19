@@ -18,18 +18,21 @@ export default function Dashboard() {
 
     useEffect(() => {
         const fetchProfile = async () => {
+            console.log("I am in fetch profile")
             try {
                 const token = await AsyncStorage.getItem('token');
+                console.log("I am in fetch profile token....", token)
                 if (!token) {
                     return;
                 }
 
-                const response = await fetch("https://garbha.onrender.com/api/auth/pregnancy-profile", {
+                const response = await fetch("http://192.168.1.5:3000/api/auth/pregnancy-profile", {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json',
                     },
                 });
+                console.log("this is a response : ",response)
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
@@ -47,13 +50,13 @@ export default function Dashboard() {
     }, []);
 
     const Weight_Click = () => {
-        router.push('/(tabs)/weight');
+        router.push('/(app)/(tabs)/weight');
     };
     const Kick_Click = () => {
-        router.push('/(tabs)/kick');
+        router.push('/(app)/(tabs)/kick');
     };
     const Upload_Click = () => {
-        router.push('/(tabs)/file');
+        router.push('/(app)/(tabs)/file');
     };
 
     return (

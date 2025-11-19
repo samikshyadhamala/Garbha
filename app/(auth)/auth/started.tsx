@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { View, TextInput, StyleSheet, Text, Platform, Pressable, KeyboardAvoidingView, ScrollView, Alert } from 'react-native';
 import Checkbox from 'expo-checkbox';
 import { Link, useRouter } from 'expo-router';
-import { setMail } from './save'
+import { setMail } from './save.js'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function GetStarted() {
@@ -17,7 +17,9 @@ export default function GetStarted() {
         })
 
     const Start = async ()=>{
-        const response = await fetch('https://garbha.onrender.com/api/auth/signup/send-otp',{
+        console.log("Thi is firstaname :", form.firstName)
+        console.log("Thi is password :", form.password)
+        const response = await fetch('http://192.168.1.5:3000/api/auth/signup/send-otp',{
             method:"POST",
             headers:{
                 "Content-type":"application/json"
@@ -26,7 +28,9 @@ export default function GetStarted() {
 
         })
 
+        
         const resp = await response.json()
+        console.log("This is repsijse : ",resp)
         if (!resp.success) {
                 Alert.alert(resp.message)
             }
@@ -34,7 +38,7 @@ export default function GetStarted() {
             if (resp.success) {
                 setMail(form.email)
                 Alert.prompt("Successfully signed in")
-                router.push('/(tabs)/verify')
+                router.push('/(auth)/auth/verify')
             }
         console.log(response)
     }
@@ -50,7 +54,7 @@ export default function GetStarted() {
                 keyboardShouldPersistTaps="handled"
             >
                 <View style={styles.above}>
-                    <Image source={require('../../assets/images/fetus.png')} style={{ width: 200, height: 200 }} />
+                    <Image source={require('../../../assets/images/fetus.png')} style={{ width: 200, height: 200 }} />
                     <View style={styles.cont}>
                         <Text style={styles.title}>Get Started</Text>
                         <Text style={styles.para}>Create account for free.</Text>
@@ -69,9 +73,9 @@ export default function GetStarted() {
                             onValueChange={setChecked}
                             color={isChecked ? '#4630EB' : undefined}
                         />
-                        <Text style={styles.checkboxLabel}>By checking the box you agree to our <Text style={styles.highlight} onPress={() => router.push('/(tabs)/dashbaord')}>Terms and Conditions</Text>.</Text>
+                        <Text style={styles.checkboxLabel}>By checking the box you agree to our <Text style={styles.highlight} onPress={() => router.push('/(app)/(tabs)/dashbaord')}>Terms and Conditions</Text>.</Text>
                     </View>
-                        <Text style={styles.checkboxLabel}>Already have an account?<Text style={styles.highlight} onPress={() => router.push('/(tabs)/login')}>LogIn</Text>.</Text>
+                        <Text style={styles.checkboxLabel}>Already have an account?<Text style={styles.highlight} onPress={() => router.push('/(auth)/login')}>LogIn</Text>.</Text>
                         <Pressable style={styles.btn} onPress={Start}>
                             {({ pressed }) => (
                                 <Text style={[styles.btnText, pressed && { opacity: 0.8 }]}>

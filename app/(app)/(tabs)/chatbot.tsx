@@ -85,7 +85,7 @@ export default function ChatBot() {
         // Handle case where token is not available
         return;
       }
-      const response = await fetch("https://garbha.onrender.com/api/auth/pregnancy-profile", {
+      const response = await fetch("http://192.168.1.5:3000/api/auth/pregnancy-profile", {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

@@ -17,7 +17,7 @@ export default function HomeScreen() {
 
     useEffect(() => {
     const timer = setTimeout(() => {
-      router.replace('/(tabs)/started');
+      router.replace('/(auth)/auth/started');
     }, DELAY_TIME_MS);
 
     return () => clearTimeout(timer);

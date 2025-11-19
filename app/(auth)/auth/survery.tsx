@@ -15,7 +15,7 @@ import { Link, useRouter } from 'expo-router';
 import { Picker } from "@react-native-picker/picker";
 
 // 👶 Import your local image
-import heartBaby from "../../assets/images/fetus.png";
+import heartBaby from "../../../assets/images/fetus.png";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function SurveyScreen() {
@@ -67,8 +67,8 @@ export default function SurveyScreen() {
     try{
 
       const token = await AsyncStorage.getItem('token'); 
-      console.log("THis is a token : ", token)
-      const response = await fetch('https://garbha.onrender.com/api/auth/pregnancy-profile', {
+      console.log("THis is a token from survery : ", token)
+      const response = await fetch('http://192.168.1.5:3000/api/auth/pregnancy-profile', {
         method: "POST",
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -86,9 +86,9 @@ export default function SurveyScreen() {
     
     if (resp.success) {
       Alert.prompt("Successfully signed in")
-      router.push('/(tabs)/verify')
+      router.push('/(app)/(tabs)/chatbot')
     }
-    console.log(response)
+    console.log("this is a reposne",response)
   }catch(error){
     console.error(error)
   }

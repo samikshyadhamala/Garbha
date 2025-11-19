@@ -66,27 +66,33 @@ export default function VerifyScreen() {
 
   const handleVerify = async () => {
     const email = getMail()
+    console.log("email : ", email)
+    console.log("otp",otp)
     setMail('')
     const enteredCode = otp.join("");
-    setForm(prev => ({ ...prev, email: email, otp: enteredCode }))
-    console.log(form.email)
-    console.log(form.otp)
-    const response = await fetch('http://192.168.1.8:3000/api/auth/signup/verify-otp', {
+    const updatedForm = {
+        email: email,
+        otp: enteredCode
+    };
+    console.log("this is form email",updatedForm.email)
+    console.log("this is form otp",updatedForm.otp)
+    const response = await fetch('http://192.168.1.5:3000/api/auth/signup/verify-otp', {
       method: "POST",
       headers: {
         "Content-type": "application/json"
       },
-      body: JSON.stringify(form)
+      body: JSON.stringify(updatedForm)
 
     })
     const resp = await response.json()
+    console.log("this is response : ", resp)
     if (!resp.success) {
       Alert.alert(resp.message)
     }
 
     if (resp.success) {
-      Alert.prompt("Successfully signed in")
-      router.push('/(tabs)/verify')
+      Alert.alert("Successfully signed in")
+      router.push('/(auth)/login')
     }
     console.log(response)
     // if (response.status == 200){
@@ -110,6 +116,11 @@ export default function VerifyScreen() {
     setTimer(30);
     setIsResendDisabled(true);
   };
+
+  const handleBack = ()=>{
+    router.push('/(auth)/auth/started')
+
+  }
 
   return (
     <View style={styles.container}>
@@ -154,7 +165,7 @@ export default function VerifyScreen() {
       </View>
 
       {/* Back Button */}
-      <TouchableOpacity style={styles.backButton}>
+      <TouchableOpacity style={styles.backButton} onPress={handleBack}>
         <Text style={styles.backArrow}>←</Text>
       </TouchableOpacity>
     </View>

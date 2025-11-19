@@ -40,7 +40,7 @@ const FileUploadScreen = () => {
     console.log("this is format data : ", formData)
     
     try {
-        const response = await fetch('https://garbha.onrender.com/api/documents/upload', {
+        const response = await fetch('http://192.168.1.5:3000/api/documents/upload', {
             method: 'POST',
             body: formData,
             headers: {
